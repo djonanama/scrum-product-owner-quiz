@@ -61,18 +61,25 @@ Make sure you have Python 3.10 installed on your system.
     rasa run actions
     ```
 
-2. **Start Rasa server with API**:
+2. **Start Rasa shell**:
+    ```bash
+    rasa shell
+    ```
+
+
+#### Other Commands for using Rasa
+
+- **Start Rasa server with API**:
     ```bash
     rasa run  --cors "*" --enable-api
     ```
 
-3. **Run Rasa with additional options (CORS, logging, etc.)**:
+- **Run Rasa with additional options (CORS, logging, etc.)**:
     ```bash
     rasa run --cors "*" --enable-api --log-file rasa_debug.log -vv
     ```
 
-4. **Start Rasa shell for testing**:
+- **Start Rasa shell for testing**:
     ```bash
-    rasa shell
     rasa shell --debug
     ```
