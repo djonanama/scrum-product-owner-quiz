@@ -41,7 +41,6 @@ def parse_test_file(file_path):
         question_text = re.sub(r'\? Choose.*', '?', question_text)
         question_text = re.sub(r'\. Choose.*', '?', question_text)
 
-
         questions.append({
             "question": question_text,
             "options": variants,

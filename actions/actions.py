@@ -33,9 +33,18 @@ def find_similar_question_semantic(user_question: str):
     similarities.sort(key=lambda x: x[1], reverse=True)  # Чем выше, тем лучше
     return similarities[0]  # Возвращаем кортеж (qa, similarity)
 
-# def find_similar_option_semantic(options: List[str], user_options: List[str]):
+def find_similar_option_semantic(correct_options: List[str], user_options: List[str]):
+    result = []
 
+    for uqa in user_options:
+        similarities = []
+        for cqa in correct_options:
+            similarity = 1 - cosine(model.encode([uqa]).squeeze(), model.encode([cqa]).squeeze())
+            similarities.append((cqa, uqa, similarity))
+        similarities.sort(key=lambda x: x[2], reverse=True)  # Чем выше, тем лучше
+        result.append(similarities[0])
 
+    return result
 
 # Функция для нахождения наиболее похожего вопроса с использованием RapidFuzz
 def find_similar_question_fuzz(user_question: str):
@@ -67,12 +76,12 @@ class ActionAnswerQuestion(Action):
             type_ans.append("semantic")
             qa = semantic_match
 
-        correct_answer = qa["answes"]
-        explanation = qa.get("explanation", "Нет объяснения")
+        correct_answer = qa["answers"]
+        explanation = qa.get("explanation", "Explanation not found.")
 
         msg_type = ", ".join(type_ans)
 
-        dispatcher.utter_message(f"{msg_type} Правильный ответ: {correct_answer}\nОбъяснение: {explanation}")
+        dispatcher.utter_message(f"{msg_type} \n\n\nCorrect answer: ✅ {correct_answer}\n\n\n Explanation: {explanation}")
 
         return []
 
@@ -81,27 +90,53 @@ class ActionAnswerMultipleChoice(Action):
         return "action_answer_multiple_choice"
 
     def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
-        user_message = tracker.latest_message.get("text")
-        user_parts = user_message.rsplit(" ", 1)  # Разбиваем по последнему пробелу
         type_ans = ["action_answer_multiple_choice"]
 
+        user_message = tracker.latest_message.get("text")
+        user_parts = user_message.rsplit("\n")
+
         if len(user_parts) < 2:
-            dispatcher.utter_message("Пожалуйста, укажите ваш ответ вместе с вопросом.")
+            dispatcher.utter_message("Invalid input format.")
             return []
 
-        user_question, user_answer = user_parts[0], user_parts[1]
+        user_question, user_options = user_parts[0], user_parts[1:]
 
-        # Находим наиболее похожий вопрос
-        qa, _ = find_similar_question_fuzz(user_question)  # Используем RapidFuzz для нахождения схожего вопроса
-        correct_answer = qa["answes"]
-        type_ans.append("fuzz")
+        if len(user_question) < 2:
+            dispatcher.utter_message("Invalid question.")
+            return []
+
+        # Используем оба подхода
+        semantic_match, semantic_score = find_similar_question_semantic(user_question)
+        fuzz_match, fuzz_score = find_similar_question_fuzz(user_question)
+
+        # Определяем лучший метод
+        if fuzz_score >= semantic_score:
+            type_ans.append("fuzz")
+            qa = fuzz_match
+        else:
+            type_ans.append("semantic")
+            qa = semantic_match
+
+        correct_options = []
+        user_options = [s for s in user_options if s.strip()]
+
+        for idx in qa["answer"]:
+            correct_options.append(qa["options"][idx])
+
+        correct_options_with_score = find_similar_option_semantic(correct_options, user_options)
+
+        score_options_show = []
+
+        for cows in correct_options_with_score:
+            score_options_show.append(f"{cows[1]} score:{round(cows[2]*100,2)}%")
+
+        score_options_show = "\n ".join(score_options_show)
+
+        correct_answer = qa["answers"]
+        explanation = qa.get("explanation", "Explanation not found.")
 
         msg_type = ", ".join(type_ans)
 
-        # Проверяем правильность ответа
-        if user_answer.strip().lower() in correct_answer.strip().lower():
-            dispatcher.utter_message(f"{msg_type} Вы выбрали правильный ответ: {user_answer}")
-        else:
-            dispatcher.utter_message(f"{msg_type} Неправильный ответ. Правильный ответ: {correct_answer}")
+        dispatcher.utter_message(f"{msg_type}\n\n score:\n {score_options_show} \n\n\n Correct answer:✅ {correct_answer} \n\n Explanation: {explanation}")
 
         return []
