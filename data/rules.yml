@@ -1,0 +1,12 @@
+version: "3.1"
+
+rules:
+- rule: Answer a knowledge-based question
+  steps:
+    - intent: ask_question
+    - action: action_answer_question
+
+- rule: Answer a multiple-choice question
+  steps:
+    - intent: multiple_choice_question
+    - action: action_answer_multiple_choice

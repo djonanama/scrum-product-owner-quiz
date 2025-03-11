@@ -1,0 +1,30 @@
+version: "3.1"
+
+language: en
+
+recipe: default.v1
+
+pipeline:
+- name: "DucklingEntityExtractor"
+  dimensions: ["time", "number"]
+- name: WhitespaceTokenizer
+- name: RegexFeaturizer
+- name: LexicalSyntacticFeaturizer
+- name: CountVectorsFeaturizer
+- name: DIETClassifier
+  constrain_similarities: true
+  epochs: 100
+- name: ResponseSelector
+  constrain_similarities: true
+  epochs: 100
+- name: FallbackClassifier
+  threshold: 0.3
+  ambiguity_threshold: 0.1
+
+policies:
+- name: MemoizationPolicy
+- name: RulePolicy
+- name: TEDPolicy
+  max_history: 10
+  epochs: 200
+assistant_id: 20250310-123045-flat-tie

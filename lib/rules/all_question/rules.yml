@@ -1,0 +1,7 @@
+version: "3.1"
+
+rules:
+  - rule: Provide an answer to a question
+    steps:
+      - intent: ask_question
+      - action: action_answer_question
